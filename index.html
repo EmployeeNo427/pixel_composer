@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Pixel Composer 🎨🎶</title>
+  <meta charset="UTF" />
+  <title>Pixel Composer v4 🎨🎶</title>
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       background: #111;
       overflow: hidden;
       font-family: sans-serif;
@@ -79,34 +78,45 @@
     });
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let drawing = false, lastX = 0, lastY = 0, hue = 0;
+    let drawing = false, lastX = 0, lastY = 0;
     let currentInstrument = 1;
 
     const instrumentColors = {
-      1: '#ff6699',
-      2: '#ffcc00',
-      3: '#66ccff',
-      4: '#cc99ff',
-      5: '#00ffaa'
+      1: '#ff6699', // lead
+      2: '#ffcc00', // perc
+      3: '#66ccff', // pluck
+      4: '#cc99ff', // pad
+      5: '#00ffaa'  // bass
     };
 
     function playSound(dx, dy, instrumentId) {
-      let freq = 200 + Math.sqrt(dx*dx + dy*dy) * 5;
+      const freq = 200 + Math.sqrt(dx * dx + dy * dy) * 5;
       const gain = audioCtx.createGain();
 
       switch (instrumentId) {
-        case 1: { // Lead
+        case 1: { // 🎹 Lead (with vibrato)
           const osc = audioCtx.createOscillator();
+          const lfo = audioCtx.createOscillator();
+          const lfoGain = audioCtx.createGain();
+
           osc.type = 'sawtooth';
           osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+
+          lfo.frequency.value = 5;
+          lfoGain.gain.value = 15;
+          lfo.connect(lfoGain).connect(osc.frequency);
+
+          gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
+
           osc.connect(gain).connect(audioCtx.destination);
           osc.start();
-          osc.stop(audioCtx.currentTime + 0.5);
+          lfo.start();
+          osc.stop(audioCtx.currentTime + 0.7);
+          lfo.stop(audioCtx.currentTime + 0.7);
           break;
         }
-        case 2: { // Percussion (noise)
+        case 2: { // 🥁 Percussion (noise burst)
           const bufferSize = 256;
           const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
           const data = buffer.getChannelData(0);
@@ -122,7 +132,7 @@
           noise.stop(audioCtx.currentTime + 0.2);
           break;
         }
-        case 3: { // Pluck
+        case 3: { // 🎸 Pluck
           const osc = audioCtx.createOscillator();
           osc.type = 'triangle';
           osc.frequency.value = freq;
@@ -133,7 +143,7 @@
           osc.stop(audioCtx.currentTime + 0.3);
           break;
         }
-        case 4: { // Ambient pad
+        case 4: { // 🌫 Pad
           const osc = audioCtx.createOscillator();
           osc.type = 'sine';
           osc.frequency.value = freq * 0.5;
@@ -144,16 +154,22 @@
           osc.stop(audioCtx.currentTime + 1.2);
           break;
         }
-        case 5: { // FM Bass
+        case 5: { // 🎛 Bass (square + filter)
           const osc = audioCtx.createOscillator();
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 400;
+
           osc.type = 'square';
-          osc.frequency.value = freq * 0.6;
-          osc.detune.value = 40;
-          gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-          osc.connect(gain).connect(audioCtx.destination);
+          osc.frequency.value = freq * 0.5;
+          osc.detune.value = -30;
+
+          gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+
+          osc.connect(filter).connect(gain).connect(audioCtx.destination);
           osc.start();
-          osc.stop(audioCtx.currentTime + 0.5);
+          osc.stop(audioCtx.currentTime + 0.3);
           break;
         }
       }
@@ -186,19 +202,19 @@
       lastY = y;
     });
 
-    // Fading trails
+    // Fading trail effect
     setInterval(() => {
       ctx.fillStyle = 'rgba(17,17,17,0.05)';
       ctx.fillRect(0, 0, width, height);
     }, 30);
 
-    // Clear button
+    // Clear canvas
     document.getElementById('clearBtn').addEventListener('click', () => {
       ctx.fillStyle = '#111';
       ctx.fillRect(0, 0, width, height);
     });
 
-    // Instrument buttons
+    // Instrument switching
     document.querySelectorAll('.btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
